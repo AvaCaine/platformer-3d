@@ -1,9 +1,18 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js';
-import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/controls/PointerLockControls.js';
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+// Debug helper
+const debug = document.getElementById('debug');
+function showDebug(text) {
+    debug.textContent = text;
+    console.log(text);
+}
 
 // Basic config
 const playerHeight = 1.6;
 const playerSize = new THREE.Vector3(0.6, playerHeight, 0.6);
+
+showDebug('Loading game...');
 
 // Renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -22,16 +31,18 @@ camera.position.set(0, playerHeight, 5);
 // Controls
 const controls = new PointerLockControls(camera, document.body);
 
-const startBtn = document.getElementById('startBtn');
-startBtn.addEventListener('click', () => {
-  controls.lock();
+// Click anywhere to start
+document.addEventListener('click', () => {
+    controls.lock();
+    showDebug('Click detected - requesting pointer lock');
 });
 
 controls.addEventListener('lock', () => {
-  document.getElementById('instructions').style.display = 'none';
+    showDebug('Pointer locked - game active');
 });
+
 controls.addEventListener('unlock', () => {
-  document.getElementById('instructions').style.display = '';
+    showDebug('Pointer unlocked - click to play');
 });
 
 scene.add(controls.getObject());
@@ -72,6 +83,91 @@ createPlatform(-4, 3.5, -12, 3, 0.5, 3, 0x44ff44);
 createPlatform(2, 5.5, -16, 4, 0.5, 4, 0x4444ff);
 createPlatform(0, 9, -20, 6, 0.5, 6, 0xffff44);
 
+// Touch controls setup
+const joystickArea = document.getElementById('joystick-area');
+const joystick = document.getElementById('joystick');
+const jumpButton = document.getElementById('jump-button');
+
+let touchController = {
+    active: false,
+    startX: 0,
+    startY: 0,
+    moveX: 0,
+    moveY: 0,
+    jumpActive: false
+};
+
+// Handle touch controls
+function initTouchControls() {
+    showDebug('Initializing touch controls...');
+    
+    if (!joystickArea || !joystick || !jumpButton) {
+        console.error('Touch control elements not found:', {
+            joystickArea: !!joystickArea,
+            joystick: !!joystick,
+            jumpButton: !!jumpButton
+        });
+        return;
+    }
+
+    showDebug('Touch controls initialized');
+    
+    // Joystick touch handling
+    joystickArea.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        const rect = joystickArea.getBoundingClientRect();
+        touchController.active = true;
+        touchController.startX = touch.clientX - rect.left;
+        touchController.startY = touch.clientY - rect.top;
+        e.preventDefault();
+    });
+
+    joystickArea.addEventListener('touchmove', (e) => {
+        if (!touchController.active) return;
+        const touch = e.touches[0];
+        const rect = joystickArea.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        // Calculate move vector (normalized -1 to 1)
+        touchController.moveX = Math.max(-1, Math.min(1, (x - touchController.startX) / 40));
+        touchController.moveY = Math.max(-1, Math.min(1, (y - touchController.startY) / 40));
+        
+        // Move joystick visual
+        joystick.style.transform = `translate(${touchController.moveX * 40}px, ${touchController.moveY * 40}px)`;
+        e.preventDefault();
+    });
+
+    const endTouch = () => {
+        touchController.active = false;
+        touchController.moveX = 0;
+        touchController.moveY = 0;
+        joystick.style.transform = 'translate(0px, 0px)';
+    };
+
+    joystickArea.addEventListener('touchend', endTouch);
+    joystickArea.addEventListener('touchcancel', endTouch);
+
+    // Jump button handling
+    jumpButton.addEventListener('touchstart', (e) => {
+        touchController.jumpActive = true;
+        jumpButton.classList.add('active');
+        if (canJump) {
+            velocity.y = 12.0;
+            canJump = false;
+        }
+        e.preventDefault();
+    });
+
+    jumpButton.addEventListener('touchend', (e) => {
+        touchController.jumpActive = false;
+        jumpButton.classList.remove('active');
+        e.preventDefault();
+    });
+}
+
+initTouchControls();
+
 // Player movement state
 const move = { forward: false, back: false, left: false, right: false, sprint: false };
 let canJump = false;
@@ -101,7 +197,7 @@ function onKeyDown(event) {
     case 'ShiftRight': move.sprint = true; break;
     case 'Space':
       if (canJump) {
-        velocity.y = 7.0;
+        velocity.y = 12.0; // Increased jump power
         canJump = false;
       }
       break;
@@ -148,10 +244,19 @@ function animate() {
 
   // movement
   direction.set(0, 0, 0);
+  
+  // Keyboard input
   if (move.forward) direction.z -= 1;
   if (move.back) direction.z += 1;
   if (move.left) direction.x -= 1;
   if (move.right) direction.x += 1;
+  
+  // Touch input
+  if (touchController.active) {
+    direction.z = touchController.moveY;
+    direction.x = -touchController.moveX;
+  }
+  
   direction.normalize();
 
   const speed = move.sprint ? 20.0 : 8.0;
@@ -164,8 +269,8 @@ function animate() {
     const right = new THREE.Vector3();
     right.crossVectors(camera.up, forward).normalize();
 
-    velocity.x += (forward.x * -direction.z + right.x * direction.x) * speed * delta * 10;
-    velocity.z += (forward.z * -direction.z + right.z * direction.x) * speed * delta * 10;
+    velocity.x += (forward.x * -direction.z + right.x * -direction.x) * speed * delta * 10;
+    velocity.z += (forward.z * -direction.z + right.z * -direction.x) * speed * delta * 10;
   }
 
   // move camera
@@ -219,4 +324,4 @@ scene.add(axes);
 // small debug camera placement
 camera.position.set(0, playerHeight, 6);
 
-console.info('Platformer 3D initialized. Click start to begin.');
+console.info('Platformer 3D initialized. Drop-in mode: play immediately; click to lock pointer for mouse look.');
