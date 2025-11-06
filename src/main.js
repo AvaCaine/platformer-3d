@@ -178,7 +178,10 @@ function initTouchControls() {
         touchController.move.active = false;
         touchController.move.moveX = 0;
         touchController.move.moveY = 0;
-        joystick.style.transform = 'translate(0px, 0px)';
+        touchController.move.centerX = 0;
+        touchController.move.centerY = 0;
+        // Return joystick to absolute center
+        joystick.style.transform = 'translate(-50%, -50%)';
     };
 
     joystickArea.addEventListener('touchend', endMoveTouch);
