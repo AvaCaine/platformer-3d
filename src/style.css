@@ -1,0 +1,12 @@
+* { box-sizing: border-box; }
+html,body { height:100%; margin:0; background:#20232a; color:#fff; font-family:system-ui,Segoe UI,Roboto,Arial; }
+#overlay { position:fixed; inset:0; pointer-events:none; }
+#instructions { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.6); padding:20px; border-radius:8px; text-align:center; pointer-events:auto; }
+#instructions button { margin-top:10px; padding:10px 16px; cursor:pointer; }
+#hud { position:fixed; inset:0; pointer-events:none; }
+#crosshair { position: absolute; left:50%; top:50%; width:16px; height:16px; margin-left:-8px; margin-top:-8px; pointer-events:none; }
+#crosshair:before, #crosshair:after { content:''; position:absolute; left:50%; top:50%; background:#eee; }
+#crosshair:before { width:2px; height:12px; margin-left:-1px; margin-top:-6px; }
+#crosshair:after { height:2px; width:12px; margin-left:-6px; margin-top:-1px; }
+#info { position:fixed; left:10px; top:10px; background:rgba(0,0,0,0.5); padding:8px 10px; border-radius:6px; font-size:13px; }
+canvas { display:block; }
