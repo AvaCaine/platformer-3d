@@ -128,8 +128,16 @@ function initTouchControls() {
         const touch = e.touches[0];
         const rect = joystickArea.getBoundingClientRect();
         touchController.move.active = true;
-        touchController.move.startX = touch.clientX - rect.left;
-        touchController.move.startY = touch.clientY - rect.top;
+        
+        // Store the center position where the touch started
+        touchController.move.centerX = touch.clientX - rect.left;
+        touchController.move.centerY = touch.clientY - rect.top;
+        
+        // Move joystick to initial touch position
+        const centerTranslateX = touchController.move.centerX - rect.width / 2;
+        const centerTranslateY = touchController.move.centerY - rect.height / 2;
+        joystick.style.transform = `translate(${centerTranslateX}px, ${centerTranslateY}px)`;
+        
         e.preventDefault();
     });
 
@@ -140,17 +148,29 @@ function initTouchControls() {
         const x = touch.clientX - rect.left;
         const y = touch.clientY - rect.top;
         
-        // Calculate move vector (normalized -1 to 1)
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        touchController.move.moveX = Math.max(-1, Math.min(1, (x - centerX) / (rect.width / 3)));
-        touchController.move.moveY = Math.max(-1, Math.min(1, (y - centerY) / (rect.height / 3)));
+        // Calculate move vector relative to start position
+        const moveX = x - touchController.move.centerX;
+        const moveY = y - touchController.move.centerY;
         
-        // Move joystick visual (clamped to area)
-        const maxMove = Math.min(rect.width, rect.height) / 4;
-        const visualX = touchController.move.moveX * maxMove;
-        const visualY = touchController.move.moveY * maxMove;
+        // Calculate normalized movement (-1 to 1)
+        const maxRadius = Math.min(rect.width, rect.height) / 3;
+        const distance = Math.sqrt(moveX * moveX + moveY * moveY);
+        const angle = Math.atan2(moveY, moveX);
+        
+        // Clamp to circular movement
+        const clampedDistance = Math.min(distance, maxRadius);
+        const clampedX = Math.cos(angle) * clampedDistance;
+        const clampedY = Math.sin(angle) * clampedDistance;
+        
+        // Update movement values (-1 to 1)
+        touchController.move.moveX = clampedX / maxRadius;
+        touchController.move.moveY = clampedY / maxRadius;
+        
+        // Move joystick visual from center position
+        const visualX = touchController.move.centerX - rect.width / 2 + clampedX;
+        const visualY = touchController.move.centerY - rect.height / 2 + clampedY;
         joystick.style.transform = `translate(${visualX}px, ${visualY}px)`;
+        
         e.preventDefault();
     });
 
