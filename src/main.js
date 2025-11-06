@@ -85,15 +85,25 @@ createPlatform(0, 9, -20, 6, 0.5, 6, 0xffff44);
 
 // Touch controls setup
 const joystickArea = document.getElementById('joystick-area');
+const lookArea = document.getElementById('look-area');
 const joystick = document.getElementById('joystick');
 const jumpButton = document.getElementById('jump-button');
 
 let touchController = {
-    active: false,
-    startX: 0,
-    startY: 0,
-    moveX: 0,
-    moveY: 0,
+    move: {
+        active: false,
+        startX: 0,
+        startY: 0,
+        moveX: 0,
+        moveY: 0
+    },
+    look: {
+        active: false,
+        lastX: 0,
+        lastY: 0,
+        moveX: 0,
+        moveY: 0
+    },
     jumpActive: false
 };
 
@@ -101,9 +111,10 @@ let touchController = {
 function initTouchControls() {
     showDebug('Initializing touch controls...');
     
-    if (!joystickArea || !joystick || !jumpButton) {
+    if (!joystickArea || !joystick || !jumpButton || !lookArea) {
         console.error('Touch control elements not found:', {
             joystickArea: !!joystickArea,
+            lookArea: !!lookArea,
             joystick: !!joystick,
             jumpButton: !!jumpButton
         });
@@ -112,41 +123,78 @@ function initTouchControls() {
 
     showDebug('Touch controls initialized');
     
-    // Joystick touch handling
+    // Movement joystick handling
     joystickArea.addEventListener('touchstart', (e) => {
         const touch = e.touches[0];
         const rect = joystickArea.getBoundingClientRect();
-        touchController.active = true;
-        touchController.startX = touch.clientX - rect.left;
-        touchController.startY = touch.clientY - rect.top;
+        touchController.move.active = true;
+        touchController.move.startX = touch.clientX - rect.left;
+        touchController.move.startY = touch.clientY - rect.top;
         e.preventDefault();
     });
 
     joystickArea.addEventListener('touchmove', (e) => {
-        if (!touchController.active) return;
+        if (!touchController.move.active) return;
         const touch = e.touches[0];
         const rect = joystickArea.getBoundingClientRect();
         const x = touch.clientX - rect.left;
         const y = touch.clientY - rect.top;
         
         // Calculate move vector (normalized -1 to 1)
-        touchController.moveX = Math.max(-1, Math.min(1, (x - touchController.startX) / 40));
-        touchController.moveY = Math.max(-1, Math.min(1, (y - touchController.startY) / 40));
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        touchController.move.moveX = Math.max(-1, Math.min(1, (x - centerX) / (rect.width / 3)));
+        touchController.move.moveY = Math.max(-1, Math.min(1, (y - centerY) / (rect.height / 3)));
         
-        // Move joystick visual
-        joystick.style.transform = `translate(${touchController.moveX * 40}px, ${touchController.moveY * 40}px)`;
+        // Move joystick visual (clamped to area)
+        const maxMove = Math.min(rect.width, rect.height) / 4;
+        const visualX = touchController.move.moveX * maxMove;
+        const visualY = touchController.move.moveY * maxMove;
+        joystick.style.transform = `translate(${visualX}px, ${visualY}px)`;
         e.preventDefault();
     });
 
-    const endTouch = () => {
-        touchController.active = false;
-        touchController.moveX = 0;
-        touchController.moveY = 0;
+    const endMoveTouch = () => {
+        touchController.move.active = false;
+        touchController.move.moveX = 0;
+        touchController.move.moveY = 0;
         joystick.style.transform = 'translate(0px, 0px)';
     };
 
-    joystickArea.addEventListener('touchend', endTouch);
-    joystickArea.addEventListener('touchcancel', endTouch);
+    joystickArea.addEventListener('touchend', endMoveTouch);
+    joystickArea.addEventListener('touchcancel', endMoveTouch);
+
+    // Look area handling
+    lookArea.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        touchController.look.active = true;
+        touchController.look.lastX = touch.clientX;
+        touchController.look.lastY = touch.clientY;
+        e.preventDefault();
+    });
+
+    lookArea.addEventListener('touchmove', (e) => {
+        if (!touchController.look.active) return;
+        const touch = e.touches[0];
+        const movementX = touch.clientX - touchController.look.lastX;
+        const movementY = touch.clientY - touchController.look.lastY;
+        
+        // Update camera rotation (similar to mouse movement)
+        controls.rotateLeft(-movementX * 0.002);
+        controls.rotateUp(-movementY * 0.002);
+        
+        touchController.look.lastX = touch.clientX;
+        touchController.look.lastY = touch.clientY;
+        e.preventDefault();
+    });
+
+    lookArea.addEventListener('touchend', () => {
+        touchController.look.active = false;
+    });
+
+    lookArea.addEventListener('touchcancel', () => {
+        touchController.look.active = false;
+    });
 
     // Jump button handling
     jumpButton.addEventListener('touchstart', (e) => {
@@ -252,9 +300,9 @@ function animate() {
   if (move.right) direction.x += 1;
   
   // Touch input
-  if (touchController.active) {
-    direction.z = touchController.moveY;
-    direction.x = -touchController.moveX;
+  if (touchController.move.active) {
+    direction.z = touchController.move.moveY;
+    direction.x = -touchController.move.moveX;
   }
   
   direction.normalize();

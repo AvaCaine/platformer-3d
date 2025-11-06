@@ -23,28 +23,44 @@ body { margin: 0; }
 
 #joystick-area {
   position: absolute;
-  left: 40px;
-  bottom: 40px;
-  width: 150px;
-  height: 150px;
-  background: rgba(255,255,255,0.2);
-  border: 3px solid rgba(255,255,255,0.4);
-  border-radius: 75px;
+  left: 0;
+  bottom: 0;
+  width: 40%;
+  height: 50%;
+  max-width: 200px;
+  max-height: 200px;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
   pointer-events: auto;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  margin: 20px;
+}
+
+#look-area {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 40%;
+  height: 50%;
+  max-width: 200px;
+  max-height: 200px;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  pointer-events: auto;
+  margin: 20px;
 }
 
 #joystick {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 60px;
-  height: 60px;
-  background: rgba(255,255,255,0.6);
-  border: 2px solid rgba(255,255,255,0.8);
-  border-radius: 30px;
+  width: 80px;
+  height: 80px;
+  background: rgba(255,255,255,0.4);
+  border: 2px solid rgba(255,255,255,0.6);
+  border-radius: 40px;
   pointer-events: none;
-  transition: transform 0.1s;
   transform: translate(-50%, -50%);
   box-shadow: 0 0 5px rgba(0,0,0,0.3);
 }
