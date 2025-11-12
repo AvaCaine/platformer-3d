@@ -94,7 +94,7 @@ scene.add(dir);
 const platforms = [];
 
 const objLoader = new OBJLoader();
-const objPath = '/src/map.obj'; // Path remains the same
+const objPath = 'src/map.obj'; // Path remains the same
 const defaultMaterial = new THREE.MeshStandardMaterial({ 
     color: 0xAAAAAA,
     roughness: 0.8,
